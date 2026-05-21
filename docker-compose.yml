@@ -1,4 +1,21 @@
 services:
+  tailscale:
+    image: tailscale/tailscale:latest
+    container_name: vaultwarden-tailscale
+    hostname: vaultwarden
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_SERVE_CONFIG=/config/serve.json
+    volumes:
+      - ./tailscale-state:/var/lib/tailscale
+      - ./tailscale-serve.json:/config/serve.json:ro
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    restart: unless-stopped
+  
   vaultwarden:
     image: vaultwarden/server:1.35.8
     container_name: vaultwarden
@@ -6,5 +23,6 @@ services:
     env_file: .env
     volumes:
       - ./data:/data
-    ports:
-      - "127.0.0.1:8080:80"
+    network_mode: "service:tailscale"
+    depends_on:
+      - tailscale
